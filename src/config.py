@@ -1,0 +1,123 @@
+import os
+from dataclasses import dataclass
+
+import yaml
+from dotenv import load_dotenv
+
+load_dotenv()
+
+
+@dataclass
+class Config:
+    quote_asset: str
+    timeframe: str
+    max_listing_age_days: int
+    lookback_candles: int
+    min_price_change_pct: float
+    min_volume_spike_ratio: float
+    cooldown_hours: float
+    scan_interval_seconds: int
+    refresh_listings_every_cycles: int
+    telegram_bot_token: str
+    telegram_chat_id: str
+
+
+@dataclass
+class MarketConfig:
+    key: str
+    scan_interval_minutes: int
+    lookback_hours: int
+    max_opportunities: int
+    min_confidence: int
+    cooldown_hours: float
+
+
+@dataclass
+class NewsConfig:
+    model: str
+    groq_api_key: str
+    telegram_bot_token: str
+    telegram_chat_id: str
+    markets: list[MarketConfig]
+
+
+def _load_yaml(path: str) -> dict:
+    with open(path, "r", encoding="utf-8") as f:
+        return yaml.safe_load(f)
+
+
+def _require_telegram_env() -> tuple[str, str]:
+    token = os.environ.get("TELEGRAM_BOT_TOKEN", "")
+    chat_id = os.environ.get("TELEGRAM_CHAT_ID", "")
+    if not token or not chat_id:
+        raise RuntimeError(
+            "TELEGRAM_BOT_TOKEN e TELEGRAM_CHAT_ID precisam estar definidos no .env "
+            "(copie .env.example para .env e preencha)."
+        )
+    return token, chat_id
+
+
+def load_config(path: str = "config.yaml") -> Config:
+    raw = _load_yaml(path)
+    token, chat_id = _require_telegram_env()
+
+    return Config(
+        quote_asset=raw["quote_asset"],
+        timeframe=raw["timeframe"],
+        max_listing_age_days=int(raw["max_listing_age_days"]),
+        lookback_candles=int(raw["lookback_candles"]),
+        min_price_change_pct=float(raw["min_price_change_pct"]),
+        min_volume_spike_ratio=float(raw["min_volume_spike_ratio"]),
+        cooldown_hours=float(raw["cooldown_hours"]),
+        scan_interval_seconds=int(raw["scan_interval_seconds"]),
+        refresh_listings_every_cycles=int(raw["refresh_listings_every_cycles"]),
+        telegram_bot_token=token,
+        telegram_chat_id=chat_id,
+    )
+
+
+def load_news_config(path: str = "config.yaml") -> NewsConfig:
+    raw = _load_yaml(path)
+    news = raw.get("news") or {}
+    token, chat_id = _require_telegram_env()
+
+    groq_key = os.environ.get("GROQ_API_KEY", "")
+    if not groq_key:
+        raise RuntimeError(
+            "GROQ_API_KEY precisa estar definida no .env para usar o radar de notícias "
+            "(crie uma chave em https://console.groq.com — atenção: Groq, não confundir "
+            "com a Grok/xAI, são serviços diferentes)."
+        )
+
+    markets_raw = news.get("markets")
+    if not markets_raw:
+        # Compatibilidade com o formato antigo (sem seção `markets:`): assume só cripto.
+        markets_raw = {
+            "crypto": {
+                "scan_interval_minutes": news.get("scan_interval_minutes", 30),
+                "lookback_hours": news.get("lookback_hours", 12),
+                "max_opportunities": news.get("max_opportunities", 5),
+                "min_confidence": news.get("min_confidence", 6),
+                "cooldown_hours": news.get("cooldown_hours", 12),
+            }
+        }
+
+    markets = [
+        MarketConfig(
+            key=key,
+            scan_interval_minutes=int(m.get("scan_interval_minutes", 30)),
+            lookback_hours=int(m.get("lookback_hours", 12)),
+            max_opportunities=int(m.get("max_opportunities", 5)),
+            min_confidence=int(m.get("min_confidence", 6)),
+            cooldown_hours=float(m.get("cooldown_hours", 12)),
+        )
+        for key, m in markets_raw.items()
+    ]
+
+    return NewsConfig(
+        model=news.get("model", "groq/compound"),
+        groq_api_key=groq_key,
+        telegram_bot_token=token,
+        telegram_chat_id=chat_id,
+        markets=markets,
+    )

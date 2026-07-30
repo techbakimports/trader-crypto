@@ -1,0 +1,64 @@
+# Configuração do scanner de tendência para micro trading em cripto.
+# Todos os valores aqui podem ser ajustados sem tocar no código.
+
+quote_asset: USDT          # moeda de cotação dos pares monitorados (ex: BTCUSDT)
+
+# Janela de tempo dos candles usada para medir o momentum de curto prazo.
+# Valores aceitos pela Binance: 1m, 3m, 5m, 15m, 30m, 1h, 2h, 4h, 1d ...
+timeframe: 15m
+
+# Considera "recém-lançada" toda moeda cujo primeiro candle diário
+# tenha menos que este número de dias.
+max_listing_age_days: 60
+
+# Quantos candles do timeframe acima olhar para trás ao calcular a variação.
+lookback_candles: 8
+
+# Variação mínima de preço (%) no período de lookback para considerar tendência de alta.
+min_price_change_pct: 8.0
+
+# Volume do candle mais recente precisa ser pelo menos N vezes a média
+# dos candles anteriores do lookback (detecta "explosão" de interesse).
+min_volume_spike_ratio: 2.0
+
+# Depois de alertar uma moeda, espera esse tempo antes de alertar de novo,
+# mesmo que o sinal continue ativo (evita spam).
+cooldown_hours: 4
+
+# Intervalo entre varreduras do mercado.
+scan_interval_seconds: 60
+
+# A cada quantos ciclos de varredura a lista de pares/idade de listagem é atualizada
+# (para pegar moedas novas que acabaram de estrear na exchange).
+refresh_listings_every_cycles: 30
+
+# ── Radar de notícias (módulo separado: python news_main.py, ou o dashboard
+# via server.py) ──────────────────────────────────────────────────────────────
+# Usa a API da Groq (console.groq.com — não confundir com a Grok/xAI, são
+# serviços diferentes) com um modelo da linha "compound", que tem busca web
+# embutida, para achar notícias com potencial de movimento de preço. CADA
+# CICLO CUSTA DINHEIRO (tokens + as buscas feitas pelo modelo), então os
+# intervalos são bem maiores que o do scanner de preço — e o mercado B3 roda
+# com menos frequência que o de cripto (não faz sentido varrer fora do
+# horário de pregão).
+#
+# Cada bloco em `markets:` é um mercado independente (chave precisa bater com
+# um `MarketProfile` em src/markets.py). Todos os campos abaixo podem ser
+# omitidos por mercado — nesse caso caem no default indicado.
+news:
+  model: groq/compound   # modelo da Groq com busca web embutida, usado por todos os mercados
+
+  markets:
+    crypto:
+      scan_interval_minutes: 30   # cripto negocia 24/7, intervalo mais curto
+      lookback_hours: 12          # janela de notícias considerada em cada consulta
+      max_opportunities: 5        # máximo de oportunidades pedidas por ciclo
+      min_confidence: 6           # descarta oportunidades com confiança < N (escala 1-10)
+      cooldown_hours: 12          # não repete alerta do mesmo ativo antes desse prazo
+
+    b3:
+      scan_interval_minutes: 120  # ações da B3 só têm pregão em horário comercial
+      lookback_hours: 24          # janela maior: relatórios de banco saem a qualquer hora do dia
+      max_opportunities: 5
+      min_confidence: 6
+      cooldown_hours: 24
