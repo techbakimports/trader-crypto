@@ -14,7 +14,7 @@ export function MarketTabs({ markets, active, onChange }: Props) {
           key={m.key}
           type="button"
           onClick={() => onChange(m.key)}
-          className={`rounded-md px-4 py-2 text-sm font-medium transition ${
+          className={`rounded-md px-4 py-2 text-base font-medium transition ${
             active === m.key
               ? 'bg-white/10 text-slate-100 shadow'
               : 'text-slate-400 hover:text-slate-200'

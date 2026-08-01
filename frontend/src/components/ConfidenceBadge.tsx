@@ -12,7 +12,7 @@ export function ConfidenceBadge({ confianca }: Props) {
 
   return (
     <span
-      className={`inline-flex items-center gap-1 rounded-full px-2.5 py-1 text-xs font-medium ring-1 ring-inset ${tone}`}
+      className={`inline-flex items-center gap-1 rounded-full px-3 py-1.5 text-sm font-medium ring-1 ring-inset ${tone}`}
     >
       Confiança {confianca}/10
     </span>

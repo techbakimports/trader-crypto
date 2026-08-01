@@ -13,10 +13,10 @@ export function MarketPanorama({ panorama, updatedAt }: Props) {
 
   return (
     <div className="mb-6 rounded-xl border border-sky-500/20 bg-sky-500/[0.06] p-4">
-      <p className="text-xs font-semibold uppercase tracking-wide text-sky-400">
+      <p className="text-sm font-semibold uppercase tracking-wide text-sky-400">
         Panorama do mercado — atualizado às {updated}
       </p>
-      <p className="mt-1.5 text-sm text-slate-300">{panorama}</p>
+      <p className="mt-2 text-base text-slate-200">{panorama}</p>
     </div>
   )
 }

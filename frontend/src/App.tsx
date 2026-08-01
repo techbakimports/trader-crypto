@@ -108,8 +108,8 @@ function App() {
     <div className="mx-auto min-h-screen max-w-6xl px-6 py-8">
       <header className="mb-8 flex flex-wrap items-start justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-semibold text-slate-100">Radar de Mercado</h1>
-          <p className="mt-1 text-sm text-slate-400">
+          <h1 className="text-3xl font-semibold text-slate-100">Radar de Mercado</h1>
+          <p className="mt-1 text-base text-slate-400">
             Síntese diária de notícias, relatórios e ratings públicos por ativo.
           </p>
         </div>
@@ -117,21 +117,21 @@ function App() {
           type="button"
           onClick={handleScan}
           disabled={!active || scanning}
-          className="rounded-lg bg-sky-500/15 px-4 py-2 text-sm font-medium text-sky-400 ring-1 ring-inset ring-sky-500/30 transition hover:bg-sky-500/25 disabled:cursor-not-allowed disabled:opacity-50"
+          className="rounded-lg bg-sky-500/15 px-5 py-2.5 text-base font-medium text-sky-400 ring-1 ring-inset ring-sky-500/30 transition hover:bg-sky-500/25 disabled:cursor-not-allowed disabled:opacity-50"
         >
           {scanning ? 'Analisando…' : 'Atualizar agora'}
         </button>
       </header>
 
       {error && (
-        <div className="mb-6 rounded-lg border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-sm text-rose-300">
+        <div className="mb-6 rounded-lg border border-rose-500/30 bg-rose-500/10 px-4 py-3 text-base text-rose-300">
           Não foi possível carregar os dados da API ({error}). Verifique se o backend
           (<code>server.py</code>) está rodando e acessível.
         </div>
       )}
 
       {scanMessage && (
-        <div className="mb-6 rounded-lg border border-sky-500/20 bg-sky-500/5 px-4 py-3 text-sm text-sky-300">
+        <div className="mb-6 rounded-lg border border-sky-500/20 bg-sky-500/5 px-4 py-3 text-base text-sky-300">
           {scanMessage}
         </div>
       )}
@@ -144,14 +144,14 @@ function App() {
 
       <QuotesTicker quotes={quotes} market={active} />
 
-      {loading && <p className="text-sm text-slate-500">Carregando análises...</p>}
+      {loading && <p className="text-base text-slate-500">Carregando análises...</p>}
 
       {!loading && latest?.panorama && (
         <MarketPanorama panorama={latest.panorama} updatedAt={latest.created_at} />
       )}
 
       {!loading && sorted.length === 0 && !error && (
-        <p className="text-sm text-slate-500">
+        <p className="text-base text-slate-500">
           Nenhuma oportunidade registrada ainda para este mercado. Clique em "Atualizar agora"
           ou aguarde o próximo ciclo automático.
         </p>

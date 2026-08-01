@@ -23,13 +23,13 @@ export function QuotesTicker({ quotes, market }: Props) {
         {quotes.map((q) => {
           const up = (q.change_pct ?? 0) >= 0
           return (
-            <div key={q.symbol} className="flex flex-col gap-0.5 px-4 py-3">
-              <span className="text-xs font-medium text-slate-400">{q.symbol}</span>
-              <span className="text-sm font-semibold text-slate-100">
+            <div key={q.symbol} className="flex flex-col gap-1 px-5 py-4">
+              <span className="text-sm font-medium text-slate-400">{q.symbol}</span>
+              <span className="text-lg font-semibold text-slate-100">
                 {formatPrice(q.price, market)}
               </span>
               {q.change_pct !== null && (
-                <span className={`text-xs ${up ? 'text-emerald-400' : 'text-rose-400'}`}>
+                <span className={`text-sm ${up ? 'text-emerald-400' : 'text-rose-400'}`}>
                   {up ? '▲' : '▼'} {Math.abs(q.change_pct).toFixed(2)}%
                 </span>
               )}
