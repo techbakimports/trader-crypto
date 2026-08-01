@@ -8,6 +8,7 @@ Este módulo só envia alertas informativos. Nenhuma ordem é executada.
 """
 import logging
 import time
+from dataclasses import dataclass
 
 from . import binance_client, repository
 from .config import MarketConfig, NewsConfig
@@ -87,7 +88,20 @@ def format_alert(opp: Opportunity) -> str:
     return "\n".join(lines)
 
 
-def scan_once(client: GroqClient, market_cfg: MarketConfig, notifier: TelegramNotifier) -> None:
+@dataclass
+class ScanResult:
+    ok: bool
+    total: int = 0
+    alerted: int = 0
+    error: str | None = None
+
+
+def scan_once(
+    client: GroqClient, market_cfg: MarketConfig, notifier: TelegramNotifier
+) -> ScanResult:
+    """Roda um ciclo do radar pra um mercado. O retorno é usado pelo disparo
+    manual (endpoint da API) pra devolver status real ao usuário — o loop
+    agendado (scheduler/`run`) ignora o retorno, como sempre fez."""
     market = MARKETS[market_cfg.key]
     log.info(
         "[%s] Consultando Groq por notícias das últimas %dh...",
@@ -99,7 +113,7 @@ def scan_once(client: GroqClient, market_cfg: MarketConfig, notifier: TelegramNo
         )
     except Exception as exc:
         log.error("[%s] Falha na análise de notícias via Groq: %s", market.key, exc)
-        return
+        return ScanResult(ok=False, error=str(exc))
 
     # Grava o histórico completo (mesmo o que não vira alerta) para o dashboard.
     for o in report.oportunidades:
@@ -118,7 +132,7 @@ def scan_once(client: GroqClient, market_cfg: MarketConfig, notifier: TelegramNo
         market.key, len(report.oportunidades), len(selected),
     )
     if not selected:
-        return
+        return ScanResult(ok=True, total=len(report.oportunidades), alerted=0)
 
     blocks = [f"📰 Radar de notícias — {market.label}\n"]
     if report.panorama:
@@ -134,6 +148,9 @@ def scan_once(client: GroqClient, market_cfg: MarketConfig, notifier: TelegramNo
             repository.mark_news_alerted(market.key, o.ativo)
     except Exception as exc:
         log.error("[%s] Falha ao enviar alerta de notícias no Telegram: %s", market.key, exc)
+        return ScanResult(ok=True, total=len(report.oportunidades), alerted=0, error=f"alerta Telegram falhou: {exc}")
+
+    return ScanResult(ok=True, total=len(report.oportunidades), alerted=len(selected))
 
 
 def run(cfg: NewsConfig) -> None:

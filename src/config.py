@@ -115,7 +115,7 @@ def load_news_config(path: str = "config.yaml") -> NewsConfig:
     ]
 
     return NewsConfig(
-        model=news.get("model", "groq/compound"),
+        model=news.get("model", "groq/compound-mini"),
         groq_api_key=groq_key,
         telegram_bot_token=token,
         telegram_chat_id=chat_id,

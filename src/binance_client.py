@@ -2,6 +2,7 @@
 
 Nenhum endpoint aqui exige API key: são todos dados públicos de mercado.
 """
+import json
 import time
 
 import requests
@@ -42,5 +43,14 @@ def get_first_candle_open_time(symbol: str) -> int:
 def get_recent_klines(symbol: str, interval: str, limit: int) -> list[list]:
     params = {"symbol": symbol, "interval": interval, "limit": limit}
     resp = _session.get(f"{BASE_URL}/api/v3/klines", params=params, timeout=15)
+    resp.raise_for_status()
+    return resp.json()
+
+
+def get_ticker_24h(symbols: list[str]) -> list[dict]:
+    """Preço atual + variação/volume nas últimas 24h para vários símbolos,
+    num único request (usado pra cotação ao vivo, sem custo de IA)."""
+    params = {"symbols": json.dumps(symbols, separators=(",", ":"))}
+    resp = _session.get(f"{BASE_URL}/api/v3/ticker/24hr", params=params, timeout=15)
     resp.raise_for_status()
     return resp.json()

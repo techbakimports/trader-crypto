@@ -58,6 +58,72 @@ def _get_candles_brapi(ticker: str, range_: str, interval: str) -> list[Candle]:
     ]
 
 
+def get_quotes(tickers: list[str]) -> list[dict]:
+    """Cotação atual (preço, variação %, volume) para vários tickers da B3 num
+    único request (usado pra cotação ao vivo, sem custo de IA). Cada item:
+    {"symbol", "price", "change_pct", "volume"}. Tickers que falharem na brapi
+    e no fallback são omitidos do resultado, não interrompem os demais."""
+    try:
+        quotes = _get_quotes_brapi(tickers)
+        if quotes:
+            return quotes
+    except Exception:
+        pass
+    return _get_quotes_yfinance(tickers)
+
+
+def _get_quotes_brapi(tickers: list[str]) -> list[dict]:
+    params = {"fundamental": "false", "dividends": "false"}
+    token = _brapi_token()
+    if token:
+        params["token"] = token
+    joined = ",".join(tickers)
+    resp = _session.get(f"{BASE_URL}/quote/{joined}", params=params, timeout=15)
+    resp.raise_for_status()
+    data = resp.json()
+    results = data.get("results") or []
+    return [
+        {
+            "symbol": r["symbol"],
+            "price": r.get("regularMarketPrice"),
+            "change_pct": r.get("regularMarketChangePercent"),
+            "volume": r.get("regularMarketVolume"),
+        }
+        for r in results
+        if r.get("regularMarketPrice") is not None
+    ]
+
+
+def _get_quotes_yfinance(tickers: list[str]) -> list[dict]:
+    import yfinance as yf  # dependência opcional, só importada no fallback
+
+    quotes = []
+    for ticker in tickers:
+        symbol = ticker if ticker.upper().endswith(".SA") else f"{ticker.upper()}.SA"
+        try:
+            hist = yf.Ticker(symbol).history(period="2d", interval="1d")
+            if hist.empty:
+                continue
+            closes = hist["Close"]
+            price = float(closes.iloc[-1])
+            change_pct = (
+                (price - float(closes.iloc[-2])) / float(closes.iloc[-2]) * 100
+                if len(closes) > 1 and closes.iloc[-2]
+                else None
+            )
+            quotes.append(
+                {
+                    "symbol": ticker.upper(),
+                    "price": price,
+                    "change_pct": change_pct,
+                    "volume": float(hist["Volume"].iloc[-1]),
+                }
+            )
+        except Exception:
+            continue
+    return quotes
+
+
 def _get_candles_yfinance(ticker: str, range_: str, interval: str) -> list[Candle]:
     import yfinance as yf  # dependência opcional, só importada no fallback
 

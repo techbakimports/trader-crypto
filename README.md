@@ -94,6 +94,22 @@ npm run dev                # dashboard em http://localhost:5173
 O frontend lê `VITE_API_BASE_URL` (padrão `http://localhost:8000`, ver
 `frontend/.env.example`).
 
+Além das oportunidades geradas por IA, o dashboard mostra:
+- **Cotação ao vivo** (preço/variação/volume) de uma watchlist fixa por mercado
+  ([src/watchlists.py](src/watchlists.py)) — dado puro de mercado, direto da
+  Binance/brapi.dev, sem custo de IA nem dependência do Groq.
+- **Botão "Atualizar agora"** — dispara um ciclo de análise imediatamente
+  (`POST /api/markets/{market}/scan`), sem esperar o próximo intervalo
+  agendado. Consome a API da Groq como qualquer ciclo normal (não é grátis).
+
+> **Sobre o modelo da Groq:** `groq/compound` (o modelo maior) falha com erro
+> 413 de forma consistente nesta conta/tier. Use `groq/compound-mini`
+> (já é o default) — funciona bem na maioria dos ciclos, mas ainda falha
+> ocasionalmente (413 ou JSON cortado) quando a busca traz muito conteúdo.
+> O sistema já tolera isso graciosamente (loga o erro e tenta de novo no
+> próximo ciclo), mas se você quiser mais confiabilidade considere upgrade de
+> tier na Groq ou usar o botão "Atualizar agora" para tentar de novo na hora.
+
 ### Expondo o backend à internet (para hospedar só o frontend)
 
 Como o scheduler precisa rodar continuamente, o jeito mais simples e gratuito de
@@ -129,6 +145,7 @@ no futuro resolve isso sem tocar no resto da arquitetura.
 - `src/news_scanner.py` — laço do radar de notícias: filtra, enriquece com gráfico
   (Binance ou B3, conforme o mercado), persiste no banco e alerta no Telegram.
 - `src/market_data/b3_client.py` — dados de mercado da B3 (brapi.dev, fallback yfinance).
+- `src/watchlists.py` — lista de ativos exibidos na cotação ao vivo do dashboard.
 - `src/repository.py` — persistência SQLite (`data/app.db`) do radar de notícias:
   cooldowns por (mercado, ativo) e histórico completo de oportunidades.
 - `src/scheduler.py` — agenda o `scan_once` de cada mercado dentro do processo do

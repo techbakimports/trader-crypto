@@ -24,3 +24,17 @@ export interface StatusResponse {
   uptime_seconds: number
   markets: Record<string, { last_updated_at: number | null }>
 }
+
+export interface Quote {
+  symbol: string
+  price: number | null
+  change_pct: number | null
+  volume: number | null
+}
+
+export interface ScanResult {
+  ok: boolean
+  total_oportunidades: number
+  alertadas: number
+  error: string | null
+}

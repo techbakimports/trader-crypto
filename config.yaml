@@ -46,7 +46,11 @@ refresh_listings_every_cycles: 30
 # um `MarketProfile` em src/markets.py). Todos os campos abaixo podem ser
 # omitidos por mercado — nesse caso caem no default indicado.
 news:
-  model: groq/compound   # modelo da Groq com busca web embutida, usado por todos os mercados
+  # "groq/compound" (o modelo maior) rejeita nosso prompt com erro 413 "Request
+  # Entity Too Large" de forma consistente nesta conta/tier — provavelmente o
+  # conteúdo que ele busca na web estoura algum limite interno de contexto da
+  # Groq. "groq/compound-mini" funciona normalmente com o mesmo prompt.
+  model: groq/compound-mini   # modelo da Groq com busca web embutida, usado por todos os mercados
 
   markets:
     crypto:
