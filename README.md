@@ -82,7 +82,7 @@ background (cripto + B3, cada mercado no seu próprio intervalo) e persiste o
 histórico completo de oportunidades em SQLite (`data/app.db`) — não só o que
 vira alerta, para o dashboard poder mostrar a análise completa de cada ativo.
 
-### Rodando localmente
+### Rodando localmente (dev, com hot reload do frontend)
 
 ```bash
 python server.py          # backend + scheduler na porta 8000 (configurável via $PORT)
@@ -93,6 +93,64 @@ npm run dev                # dashboard em http://localhost:5173
 
 O frontend lê `VITE_API_BASE_URL` (padrão `http://localhost:8000`, ver
 `frontend/.env.example`).
+
+### Rodando tudo num processo só (produção / ambientes sem Node — ex: Termux)
+
+`server.py` também serve o build de produção do frontend (`frontend/dist/`,
+já versionado no repo) direto pela mesma porta — não precisa de Node, Nginx
+nem processo separado. Basta:
+
+```bash
+git pull                  # pega o build mais recente do frontend
+python server.py          # dashboard completo em http://localhost:8000 (ou $PORT)
+```
+
+Se você mudar algo no frontend, regenere o build antes de commitar:
+
+```bash
+cd frontend && npm run build   # gera frontend/dist/ com URLs relativas (mesma origem)
+```
+
+### Instalando num celular via Termux
+
+O app é leve o bastante pra rodar direto no Android via
+[Termux](https://termux.dev/) (F-Droid, não a versão da Play Store, que está
+desatualizada) — útil pra ter o radar rodando sem depender de PC ou VPS.
+
+```bash
+# 1. Sistema
+pkg update && pkg upgrade -y
+pkg install -y python git tmux termux-api python-numpy python-pandas
+
+# 2. Projeto
+git clone https://github.com/techbakimports/trader-crypto.git
+cd trader-crypto
+pip install --upgrade pip
+pip install --no-deps yfinance
+pip install fastapi uvicorn apscheduler requests python-dotenv PyYAML
+
+# 3. Credenciais
+cp .env.example .env
+nano .env   # preencha TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID, GROQ_API_KEY
+
+# 4. Rodar (numa sessão tmux, que sobrevive a fechar o app do Termux)
+termux-wake-lock
+tmux new -s trader
+python server.py
+# Ctrl+B depois D pra sair sem derrubar; `tmux attach -t trader` pra voltar
+```
+
+Dois detalhes específicos de Android:
+- **numpy/pandas** (dependência do `yfinance`, usado só como fallback dos
+  dados da B3) não compilam fácil no Termux — por isso instalamos via `pkg`
+  (binário pronto) em vez de deixar o `pip` compilar do zero.
+- Vá em **Configurações do Android → Apps → Termux → Bateria → Sem
+  restrições**, senão o sistema mata o processo em background pra economizar
+  bateria, mesmo com `termux-wake-lock` ativo.
+- Celular na rede móvel não tem IP público fixo (fica atrás de CGNAT) — pra
+  acessar de fora da própria rede, use o mesmo esquema de túnel (ngrok)
+  descrito abaixo. Na mesma rede Wi-Fi, dá pra acessar direto pelo IP local
+  do celular.
 
 Além das oportunidades geradas por IA, o dashboard mostra:
 - **Cotação ao vivo** (preço/variação/volume) de uma watchlist fixa por mercado

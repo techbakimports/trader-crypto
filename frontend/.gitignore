@@ -8,7 +8,8 @@ pnpm-debug.log*
 lerna-debug.log*
 
 node_modules
-dist
+# dist é versionado de propósito (ver .gitignore da raiz) — permite rodar em
+# ambientes sem Node (ex: Termux) só com `python server.py`.
 dist-ssr
 *.local
 

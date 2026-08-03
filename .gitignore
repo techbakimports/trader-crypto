@@ -7,5 +7,8 @@ __pycache__/
 
 # frontend
 frontend/node_modules/
-frontend/dist/
 frontend/.env
+# frontend/dist/ é versionado de propósito: permite rodar em ambientes sem
+# Node (ex: Termux) só com `git pull` + `python server.py`, que já serve o
+# build pronto. Rode `npm run build` no frontend/ e commite de novo sempre
+# que mudar algo na interface.

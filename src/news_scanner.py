@@ -96,6 +96,26 @@ class ScanResult:
     error: str | None = None
 
 
+def _fetch_report_with_retry(client, market, lookback_hours, max_opportunities, retries=1):
+    """`groq/compound-mini` falha de forma intermitente (413 "payload too
+    large" ou JSON cortado) quando a busca embutida traz muito conteúdo de
+    volta — no geral não se repete numa segunda tentativa imediata, então
+    vale a pena tentar de novo antes de desistir do ciclo."""
+    last_exc: Exception | None = None
+    for attempt in range(retries + 1):
+        try:
+            return fetch_report(client, market, lookback_hours, max_opportunities)
+        except Exception as exc:
+            last_exc = exc
+            if attempt < retries:
+                log.warning(
+                    "[%s] Tentativa %d falhou (%s), tentando de novo...",
+                    market.key, attempt + 1, exc,
+                )
+                time.sleep(5)
+    raise last_exc
+
+
 def scan_once(
     client: GroqClient, market_cfg: MarketConfig, notifier: TelegramNotifier
 ) -> ScanResult:
@@ -108,7 +128,7 @@ def scan_once(
         market.key, market_cfg.lookback_hours,
     )
     try:
-        report = fetch_report(
+        report = _fetch_report_with_retry(
             client, market, market_cfg.lookback_hours, market_cfg.max_opportunities
         )
     except Exception as exc:
