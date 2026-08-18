@@ -36,6 +36,23 @@ Regras de conduta (importantes):
 - Inclua apenas oportunidades com catalisador concreto e verificável nas fontes.
 - Se não houver nada relevante o suficiente, retorne "oportunidades": [].
 - Priorize informação das últimas {lookback_hours} horas; ignore notícias velhas.
+- Cite sempre a notícia/artigo específico por trás do catalisador. Uma página agregadora
+  genérica (ex: uma capa tipo "top stories" ou "daily market wrap" sem um evento isolado)
+  NÃO conta como fonte suficiente sozinha — se for tudo que encontrar, trate a oportunidade
+  como baixa confiança (ver régua abaixo) ou descarte.
+
+Régua obrigatória para o campo "confianca" (não é uma nota livre — ancore nestes critérios,
+do mais forte pro mais fraco, e não pule graus sem justificativa no campo "catalisador"):
+- 9-10: catalisador confirmado por fonte primária/oficial (anúncio da própria exchange,
+  comunicado oficial do projeto/empresa, fato relevante publicado na CVM) E o evento já
+  está confirmado ou em andamento, não é rumor nem projeção.
+- 7-8: catalisador confirmado por múltiplas fontes jornalísticas independentes e
+  reconhecidas, mesmo que nenhuma seja a fonte primária/oficial.
+- 5-6: catalisador vem de uma única fonte secundária específica (um artigo identificável,
+  não uma capa agregadora), ou é uma leitura de mercado/narrativa (ex: "rotação de setor",
+  "sentimento positivo retornando") sem um evento isolado e datável por trás.
+- 1-4: rumor não confirmado, fonte única de baixa confiabilidade, catalisador fraco/indireto,
+  ou a única fonte disponível é uma página agregadora genérica.
 
 Responda SOMENTE com um JSON válido, sem texto fora dele, neste formato exato:
 {{
