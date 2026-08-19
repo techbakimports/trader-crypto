@@ -152,6 +152,73 @@ Dois detalhes específicos de Android:
   descrito abaixo. Na mesma rede Wi-Fi, dá pra acessar direto pelo IP local
   do celular.
 
+### Alternativa: instalando isolado via proot-distro (Ubuntu dentro do Termux)
+
+Se você não quer misturar as dependências do projeto com o Termux base
+(pacotes globais via `pkg`, etc.), dá pra rodar tudo dentro de um Ubuntu
+isolado usando [proot-distro](https://github.com/termux/proot-distro) — o
+filesystem fica totalmente separado do Termux, e como é um Ubuntu de verdade
+(glibc padrão), os pacotes Python com extensão C instalam via `pip` normal,
+sem precisar do workaround `pkg install python-numpy python-pandas` do
+Termux puro.
+
+```bash
+# 1. Instalar o proot-distro e o Ubuntu (no Termux base)
+pkg update && pkg upgrade -y
+pkg install -y proot-distro termux-api tmux
+proot-distro install ubuntu
+
+# 2. Entrar no Ubuntu isolado
+proot-distro login ubuntu
+
+# 3. Dependências de sistema (dentro do Ubuntu)
+apt update && apt upgrade -y
+apt install -y python3.12 python3.12-venv python3-pip git nano \
+  libxml2-dev libxslt1-dev build-essential python3-dev
+
+# 4. Clonar e criar o venv (ainda dentro do Ubuntu)
+git clone git@github.com:techbakimports/trader-crypto.git   # ou a URL https, se o repo for público
+cd trader-crypto
+python3.12 -m venv venv
+source venv/bin/activate
+pip install --upgrade pip
+pip install -r requirements.txt
+
+# 5. Credenciais
+cp .env.example .env
+nano .env   # preencha TELEGRAM_BOT_TOKEN, TELEGRAM_CHAT_ID, GROQ_API_KEY
+
+# 6. Sair do Ubuntu, voltar pro Termux base
+exit
+
+# 7. Rodar (wake-lock precisa ser chamado no Termux base, não dentro do proot,
+#    mas vale pra sessão toda independente de qual shell chamou)
+tmux new -s trader
+termux-wake-lock
+proot-distro login ubuntu
+cd trader-crypto && source venv/bin/activate
+python3 server.py
+# Ctrl+B depois D pra sair sem derrubar; `tmux attach -t trader` pra voltar
+# (você reaparece dentro do Ubuntu, no mesmo lugar)
+```
+
+Notas:
+- **`libxml2-dev` / `libxslt1-dev` / `build-essential` / `python3-dev`**:
+  necessários porque o `lxml` (dependência transitiva do `yfinance`) às vezes
+  não encontra uma wheel pré-compilada nesse ambiente e precisa compilar do
+  zero — sem os headers de desenvolvimento, o build falha com erro tipo
+  `Please make sure the libxml2 and libxslt development packages are installed`.
+- Prefira **Python 3.12** em vez de versões mais novas (ex: 3.14) disponíveis
+  no `apt` — versões muito recentes podem não ter wheels prontas ainda para
+  todas as dependências, forçando compilação do zero com mais chance de erro.
+- Pra clonar um repositório **privado**, use a URL SSH (`git@github.com:...`)
+  com uma [deploy key](https://docs.github.com/en/authentication/connecting-to-github-with-ssh/managing-deploy-keys)
+  cadastrada no repositório — a URL `https://github.com/...` pede usuário/senha
+  e não usa a chave SSH.
+- **Resetar o ambiente** se algo der errado: `proot-distro reset ubuntu`
+  (fora do proot, no Termux base) apaga e reinstala o Ubuntu limpo, sem afetar
+  o Termux.
+
 Além das oportunidades geradas por IA, o dashboard mostra:
 - **Cotação ao vivo** (preço/variação/volume) de uma watchlist fixa por mercado
   ([src/watchlists.py](src/watchlists.py)) — dado puro de mercado, direto da
