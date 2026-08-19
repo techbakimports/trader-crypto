@@ -57,6 +57,15 @@ def _require_telegram_env() -> tuple[str, str]:
     return token, chat_id
 
 
+def _optional_telegram_env() -> tuple[str, str]:
+    """Como `_require_telegram_env`, mas não falha se estiver vazio — usado pelo
+    radar de notícias/dashboard, que tem a própria interface web (`server.py`) e
+    não precisa do Telegram pra ser útil. Sem essas variáveis, os alertas
+    simplesmente não são enviados (ver `TelegramNotifier.enabled`), mas o
+    scanner, o histórico no banco e o dashboard continuam funcionando normalmente."""
+    return os.environ.get("TELEGRAM_BOT_TOKEN", ""), os.environ.get("TELEGRAM_CHAT_ID", "")
+
+
 def load_config(path: str = "config.yaml") -> Config:
     raw = _load_yaml(path)
     token, chat_id = _require_telegram_env()
@@ -79,7 +88,7 @@ def load_config(path: str = "config.yaml") -> Config:
 def load_news_config(path: str = "config.yaml") -> NewsConfig:
     raw = _load_yaml(path)
     news = raw.get("news") or {}
-    token, chat_id = _require_telegram_env()
+    token, chat_id = _optional_telegram_env()
 
     groq_key = os.environ.get("GROQ_API_KEY", "")
     if not groq_key:
