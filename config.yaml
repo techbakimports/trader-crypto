@@ -60,6 +60,13 @@ news:
       min_confidence: 6           # descarta oportunidades com confiança < N (escala 1-10)
       cooldown_hours: 12          # não repete alerta do mesmo ativo antes desse prazo
 
+    altcoins:
+      scan_interval_minutes: 30   # narrativa de altcoin pequena muda rápido, igual cripto
+      lookback_hours: 6           # janela menor: narrativas de nicho ficam velhas rápido
+      max_opportunities: 5
+      min_confidence: 6           # mesma régua de confiança do cripto — não afrouxa por ser pequena
+      cooldown_hours: 12
+
     b3:
       scan_interval_minutes: 120  # ações da B3 só têm pregão em horário comercial
       lookback_hours: 24          # janela maior: relatórios de banco saem a qualquer hora do dia
