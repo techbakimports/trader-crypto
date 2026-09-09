@@ -74,8 +74,33 @@ BTG Pactual, Itaú BBA, Bradesco BBI, XP, Goldman Sachs)
     ),
 )
 
+B3_SMALLCAPS = MarketProfile(
+    key="b3_smallcaps",
+    label="B3 Small Caps",
+    catalyst_bullets="""\
+- fatos relevantes na CVM de empresas de menor capitalização, fora do Ibovespa e \
+pouco cobertas por grandes bancos
+- início de cobertura ("initiation of coverage") por casas de research de small caps \
+(ex: Empiricus, Nord Research, Suno) sobre empresas pouco conhecidas
+- resultados trimestrais de empresas de segunda linha, especialmente surpresas \
+positivas/negativas em relação ao histórico da própria empresa (consenso de mercado \
+costuma ser escasso pra essas)
+- IPOs recentes, follow-ons ou fusões/aquisições envolvendo empresas menores
+- entrada de fundos/gestoras especializadas em small caps na base acionária
+- notícias setoriais específicas com pouca cobertura mainstream (ex: agro, saúde, \
+tecnologia de nicho) que afetem uma empresa pequena de forma direta""",
+    ref_format_hint='ticker da B3 no formato usual (ex: "PETR4", "ITUB4", "INBR32")',
+    source_hint=(
+        "fatos relevantes na CVM, casas de research especializadas em small caps "
+        "(Empiricus, Nord Research, Suno), seções de small caps de portais "
+        "financeiros (InfoMoney, Money Times) — evite replicar a mesma cobertura "
+        "de blue chips que já sai no mercado 'b3' padrão"
+    ),
+)
+
 MARKETS: dict[str, MarketProfile] = {
     CRYPTO.key: CRYPTO,
     ALTCOINS.key: ALTCOINS,
     B3.key: B3,
+    B3_SMALLCAPS.key: B3_SMALLCAPS,
 }

@@ -73,3 +73,10 @@ news:
       max_opportunities: 5
       min_confidence: 6
       cooldown_hours: 24
+
+    b3_smallcaps:
+      scan_interval_minutes: 120  # mesmo horário de pregão do b3 padrão
+      lookback_hours: 24
+      max_opportunities: 5
+      min_confidence: 6           # mesma régua — não afrouxa por ser small cap
+      cooldown_hours: 24
