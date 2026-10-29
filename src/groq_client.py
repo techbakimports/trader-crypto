@@ -14,9 +14,29 @@ Atenção: cada chamada consome tokens (e as buscas feitas pelo modelo),
 cobrados pela Groq. Controle a frequência via `scan_interval_minutes` no
 config.yaml.
 """
+import logging
+import threading
+import time
+
 import requests
 
+log = logging.getLogger("groq_client")
+
 BASE_URL = "https://api.groq.com/openai/v1"
+
+# Uma busca web gasta dezenas de milhares de tokens e o limite por minuto da conta
+# (TPM) é bem menor que isso: chamadas simultâneas de mercados diferentes se
+# esbarram em 429. Serializa todas as chamadas do processo.
+_CALL_LOCK = threading.Lock()
+_MAX_429_RETRIES = 3
+_MAX_429_WAIT_SECONDS = 90
+
+
+def _retry_after_seconds(resp: requests.Response) -> float:
+    try:
+        return min(float(resp.headers["retry-after"]), _MAX_429_WAIT_SECONDS)
+    except (KeyError, ValueError):
+        return 30.0
 
 
 class GroqClient:
@@ -40,9 +60,16 @@ class GroqClient:
             # a Groq recomenda esforço baixo: níveis maiores alongam a navegação
             # e consomem muito mais tokens
             body["reasoning_effort"] = "low"
-        resp = requests.post(
-            f"{BASE_URL}/chat/completions", headers=self._headers, json=body, timeout=timeout
-        )
+        with _CALL_LOCK:
+            for attempt in range(_MAX_429_RETRIES + 1):
+                resp = requests.post(
+                    f"{BASE_URL}/chat/completions", headers=self._headers, json=body, timeout=timeout
+                )
+                if resp.status_code != 429 or attempt == _MAX_429_RETRIES:
+                    break
+                wait = _retry_after_seconds(resp)
+                log.warning("Groq respondeu 429 (limite de tokens/min); aguardando %.0fs...", wait)
+                time.sleep(wait)
         resp.raise_for_status()
         return _extract_message_text(resp.json())
 

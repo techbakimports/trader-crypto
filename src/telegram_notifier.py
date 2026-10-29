@@ -17,7 +17,8 @@ class TelegramNotifier:
         .env — nesse caso `send` só loga e não faz a chamada HTTP. Permite
         rodar o dashboard (que tem interface própria) sem depender do
         Telegram; usado como canal opcional de alerta."""
-        return bool(self.bot_token and self.chat_id)
+        placeholder = self.bot_token.startswith("coloque_") or self.chat_id.startswith("coloque_")
+        return bool(self.bot_token and self.chat_id) and not placeholder
 
     def send(self, text: str, parse_mode: str | None = "Markdown") -> None:
         if not self.enabled:
