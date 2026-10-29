@@ -28,8 +28,11 @@ BASE_URL = "https://api.groq.com/openai/v1"
 # (TPM) é bem menor que isso: chamadas simultâneas de mercados diferentes se
 # esbarram em 429. Serializa todas as chamadas do processo.
 _CALL_LOCK = threading.Lock()
-_MAX_429_RETRIES = 3
-_MAX_429_WAIT_SECONDS = 90
+# Uma busca consome ~35k tokens contra um balde de 8k/min: depois de uma chamada
+# pesada o balde fica "devendo" e leva ~4-5 min pra recuperar, então o teto de
+# espera precisa ser folgado.
+_MAX_429_RETRIES = 5
+_MAX_429_WAIT_SECONDS = 300
 
 
 def _retry_after_seconds(resp: requests.Response) -> float:
