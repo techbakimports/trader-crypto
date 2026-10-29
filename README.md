@@ -32,8 +32,8 @@ fatos relevantes), sempre com atribuição.**
 
 ## Como funciona — Radar de notícias
 
-1. A cada `scan_interval_minutes`, pergunta a um modelo da Groq (linha "compound",
-   com busca web embutida) o que aconteceu de relevante nas últimas `lookback_hours`
+1. A cada `scan_interval_minutes`, pergunta a um modelo da Groq (`openai/gpt-oss-120b`
+   com a ferramenta `browser_search`) o que aconteceu de relevante nas últimas `lookback_hours`
    horas: listagens em exchanges, TGEs/vendas públicas, unlocks, ETFs, hacks e
    narrativas ganhando tração (cripto), ou relatórios/ratings de bancos, resultados
    trimestrais e fatos relevantes (B3).
@@ -49,7 +49,7 @@ fatos relevantes), sempre com atribuição.**
 > intervalo conforme seu orçamento. O mercado B3 usa um intervalo maior por padrão
 > (120 min) justamente para não dobrar o custo à toa.
 >
-> **Atenção:** use um modelo da linha "compound" da Groq (com busca web real).
+> **Atenção:** use um modelo da Groq com busca web real (`openai/gpt-oss-*` + `browser_search`).
 > Modelos padrão (Llama, Mixtral etc.) não têm acesso à internet e podem *inventar*
 > notícias/fontes quando pedidos para citar algo — o que quebraria a premissa de
 > "só sintetizar fontes reais" deste projeto.
@@ -227,10 +227,11 @@ Além das oportunidades geradas por IA, o dashboard mostra:
   (`POST /api/markets/{market}/scan`), sem esperar o próximo intervalo
   agendado. Consome a API da Groq como qualquer ciclo normal (não é grátis).
 
-> **Sobre o modelo da Groq:** `groq/compound` (o modelo maior) falha com erro
-> 413 de forma consistente nesta conta/tier. Use `groq/compound-mini`
-> (já é o default) — funciona bem na maioria dos ciclos, mas ainda falha
-> ocasionalmente (413 ou JSON cortado) quando a busca traz muito conteúdo.
+> **Sobre o modelo da Groq:** a linha `groq/compound*` foi descontinuada em
+> 21/09/2026 (a API passa a responder 404). O default agora é
+> `openai/gpt-oss-120b`; o `src/groq_client.py` liga a ferramenta `browser_search`
+> automaticamente para ids `openai/gpt-oss*`. Se um dia der 404 de novo, confira a
+> lista de modelos da conta e a página de deprecações em console.groq.com/docs/deprecations.
 > O sistema já tolera isso graciosamente (loga o erro e tenta de novo no
 > próximo ciclo), mas se você quiser mais confiabilidade considere upgrade de
 > tier na Groq ou usar o botão "Atualizar agora" para tentar de novo na hora.
@@ -263,7 +264,7 @@ no futuro resolve isso sem tocar no resto da arquitetura.
 - `src/state.py` — cache local em JSON (idade de listagem e cooldown) usado só pelo
   scanner de tendência.
 - `src/groq_client.py` — cliente da API da Groq (`/openai/v1/chat/completions`,
-  modelo "compound" com busca web embutida), agnóstico de mercado.
+  gpt-oss com `browser_search`), agnóstico de mercado.
 - `src/markets.py` — perfis de mercado (`MarketProfile`) para cripto e B3: o que pedir
   ao modelo e como formatar a referência operacional de cada um.
 - `src/news_analyst.py` — prompt (parametrizado por mercado) e parsing do JSON de oportunidades.

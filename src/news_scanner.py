@@ -97,7 +97,7 @@ class ScanResult:
 
 
 def _fetch_report_with_retry(client, market, lookback_hours, max_opportunities, retries=1):
-    """`groq/compound-mini` falha de forma intermitente (413 "payload too
+    """A Groq falha de forma intermitente (413 "payload too
     large" ou JSON cortado) quando a busca embutida traz muito conteúdo de
     volta — no geral não se repete numa segunda tentativa imediata, então
     vale a pena tentar de novo antes de desistir do ciclo."""

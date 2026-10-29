@@ -35,8 +35,8 @@ refresh_listings_every_cycles: 30
 # ── Radar de notícias (módulo separado: python news_main.py, ou o dashboard
 # via server.py) ──────────────────────────────────────────────────────────────
 # Usa a API da Groq (console.groq.com — não confundir com a Grok/xAI, são
-# serviços diferentes) com um modelo da linha "compound", que tem busca web
-# embutida, para achar notícias com potencial de movimento de preço. CADA
+# serviços diferentes) com um modelo gpt-oss + ferramenta browser_search (busca
+# web feita pela Groq), para achar notícias com potencial de movimento de preço. CADA
 # CICLO CUSTA DINHEIRO (tokens + as buscas feitas pelo modelo), então os
 # intervalos são bem maiores que o do scanner de preço — e o mercado B3 roda
 # com menos frequência que o de cripto (não faz sentido varrer fora do
@@ -46,11 +46,10 @@ refresh_listings_every_cycles: 30
 # um `MarketProfile` em src/markets.py). Todos os campos abaixo podem ser
 # omitidos por mercado — nesse caso caem no default indicado.
 news:
-  # "groq/compound" (o modelo maior) rejeita nosso prompt com erro 413 "Request
-  # Entity Too Large" de forma consistente nesta conta/tier — provavelmente o
-  # conteúdo que ele busca na web estoura algum limite interno de contexto da
-  # Groq. "groq/compound-mini" funciona normalmente com o mesmo prompt.
-  model: groq/compound-mini   # modelo da Groq com busca web embutida, usado por todos os mercados
+  # A linha "groq/compound*" (busca embutida) foi descontinuada pela Groq em
+  # 21/09/2026 e passou a dar 404. Substituto: gpt-oss com a ferramenta
+  # browser_search, que o src/groq_client.py liga sozinho para ids "openai/gpt-oss*".
+  model: openai/gpt-oss-120b   # modelo da Groq com busca web via browser_search, usado por todos os mercados
 
   markets:
     crypto:

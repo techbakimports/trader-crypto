@@ -141,6 +141,8 @@ def _parse_report(raw: str, market_key: str) -> NewsReport:
 def _extract_json(raw: str) -> dict:
     """O modelo às vezes envolve o JSON em cercas de código ou texto solto;
     tenta o parse direto e depois recorta do primeiro `{` ao último `}`."""
+    # a busca dos modelos gpt-oss deixa marcadores de citação tipo 【2†L6-L10】 no texto
+    raw = re.sub(r"【[^】]*】", "", raw)
     raw = re.sub(r"^```(?:json)?\s*|\s*```$", "", raw.strip())
     try:
         return json.loads(raw)

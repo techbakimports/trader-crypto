@@ -1,15 +1,18 @@
 """Cliente para a API da Groq (console.groq.com) — não confundir com a Grok/xAI
 (api.x.ai), serviço diferente com API incompatível.
 
-Usa o endpoint padrão (compatível com OpenAI) `/openai/v1/chat/completions` com
-um modelo da linha "compound" (ex: `groq/compound`), que tem busca na web
-embutida server-side. Modelos padrão da Groq (Llama, Mixtral etc.) NÃO têm
-acesso à internet — não usar aqui, pois o modelo tende a inventar notícias e
-fontes quando pedido pra citar algo que não está nos dados de treino.
+Usa o endpoint padrão (compatível com OpenAI) `/openai/v1/chat/completions`.
+A busca na web é executada server-side pela Groq, de duas formas:
+- modelos `openai/gpt-oss-*`: ferramenta `browser_search` pedida em `tools`
+  (a linha `groq/compound*` foi descontinuada em 21/09/2026);
+- modelos `groq/compound*`: busca embutida no próprio modelo, sem `tools`.
+Modelos sem busca (Llama, Qwen etc.) NÃO devem ser usados aqui, pois o modelo
+tende a inventar notícias e fontes quando pedido pra citar algo que não está
+nos dados de treino.
 
-Atenção: cada chamada consome tokens (e as invocações de busca do modelo
-compound), cobrados pela Groq. Controle a frequência via
-`scan_interval_minutes` no config.yaml.
+Atenção: cada chamada consome tokens (e as buscas feitas pelo modelo),
+cobrados pela Groq. Controle a frequência via `scan_interval_minutes` no
+config.yaml.
 """
 import requests
 
@@ -25,12 +28,18 @@ class GroqClient:
         }
 
     def ask_with_search(self, prompt: str, timeout: int = 240) -> str:
-        """Envia um prompt a um modelo Groq com busca na web habilitada
-        (assumindo um modelo da linha "compound") e retorna o texto da resposta."""
+        """Envia um prompt a um modelo Groq com busca na web habilitada e
+        retorna o texto da resposta."""
         body = {
             "model": self.model,
             "messages": [{"role": "user", "content": prompt}],
         }
+        if self.model.startswith("openai/gpt-oss"):
+            body["tools"] = [{"type": "browser_search"}]
+            body["tool_choice"] = "required"
+            # a Groq recomenda esforço baixo: níveis maiores alongam a navegação
+            # e consomem muito mais tokens
+            body["reasoning_effort"] = "low"
         resp = requests.post(
             f"{BASE_URL}/chat/completions", headers=self._headers, json=body, timeout=timeout
         )

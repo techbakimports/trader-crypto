@@ -44,7 +44,7 @@ def start(cfg: NewsConfig) -> BackgroundScheduler:
     # Dispara um ciclo inicial de cada mercado logo no start, sem esperar o
     # primeiro intervalo completo (senão o dashboard fica vazio até lá) — mas
     # escalonado por mercado, não tudo de uma vez: cada chamada ao modelo
-    # "compound" consome bastante tokens/minuto, e disparar vários mercados
+    # com busca web consome bastante tokens/minuto, e disparar vários mercados
     # simultâneos facilmente estoura o rate limit (TPM) da conta.
     for i, market_cfg in enumerate(cfg.markets):
         scheduler.modify_job(
