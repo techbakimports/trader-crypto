@@ -1,8 +1,10 @@
 import os
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 import yaml
 from dotenv import load_dotenv
+
+from . import schedule
 
 load_dotenv()
 
@@ -30,6 +32,12 @@ class MarketConfig:
     max_opportunities: int
     min_confidence: int
     cooldown_hours: float
+    # Horário fixo (opcional): se `run_at` estiver preenchido, ele substitui
+    # `scan_interval_minutes` — ver src/schedule.py.
+    run_at: list[str] = field(default_factory=list)
+    days: str = "mon-sun"
+    max_lookback_hours: int = 96
+    timezone: str = "America/Sao_Paulo"
 
 
 @dataclass
@@ -111,17 +119,32 @@ def load_news_config(path: str = "config.yaml") -> NewsConfig:
             }
         }
 
-    markets = [
-        MarketConfig(
-            key=key,
-            scan_interval_minutes=int(m.get("scan_interval_minutes", 30)),
-            lookback_hours=int(m.get("lookback_hours", 12)),
-            max_opportunities=int(m.get("max_opportunities", 5)),
-            min_confidence=int(m.get("min_confidence", 6)),
-            cooldown_hours=float(m.get("cooldown_hours", 12)),
+    timezone = str(news.get("timezone", "America/Sao_Paulo"))
+    schedule.validate_timezone(timezone)
+
+    markets = []
+    for key, m in markets_raw.items():
+        run_at = [str(t) for t in (m.get("run_at") or [])]
+        days = str(m.get("days", "mon-sun"))
+        try:
+            schedule.parse_run_at(run_at)
+            schedule.parse_days(days)
+        except ValueError as exc:
+            raise RuntimeError(f"news.markets.{key}: {exc}") from exc
+        markets.append(
+            MarketConfig(
+                key=key,
+                scan_interval_minutes=int(m.get("scan_interval_minutes", 30)),
+                lookback_hours=int(m.get("lookback_hours", 12)),
+                max_opportunities=int(m.get("max_opportunities", 5)),
+                min_confidence=int(m.get("min_confidence", 6)),
+                cooldown_hours=float(m.get("cooldown_hours", 12)),
+                run_at=run_at,
+                days=days,
+                max_lookback_hours=int(m.get("max_lookback_hours", 96)),
+                timezone=timezone,
+            )
         )
-        for key, m in markets_raw.items()
-    ]
 
     return NewsConfig(
         model=news.get("model", "openai/gpt-oss-120b"),

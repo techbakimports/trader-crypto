@@ -11,8 +11,8 @@ tende a inventar notícias e fontes quando pedido pra citar algo que não está
 nos dados de treino.
 
 Atenção: cada chamada consome tokens (e as buscas feitas pelo modelo),
-cobrados pela Groq. Controle a frequência via `scan_interval_minutes` no
-config.yaml.
+cobrados pela Groq. Controle a frequência via `run_at` (ou
+`scan_interval_minutes`) no config.yaml.
 """
 import logging
 import threading

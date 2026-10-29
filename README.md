@@ -32,9 +32,10 @@ fatos relevantes), sempre com atribuição.**
 
 ## Como funciona — Radar de notícias
 
-1. A cada `scan_interval_minutes`, pergunta a um modelo da Groq (`openai/gpt-oss-120b`
-   com a ferramenta `browser_search`) o que aconteceu de relevante nas últimas `lookback_hours`
-   horas: listagens em exchanges, TGEs/vendas públicas, unlocks, ETFs, hacks e
+1. Em horários fixos por mercado (`run_at` + `days`, no fuso `news.timezone`; ou a cada
+   `scan_interval_minutes` se o mercado não declarar `run_at`), pergunta a um modelo da Groq (`openai/gpt-oss-120b`
+   com a ferramenta `browser_search`) o que aconteceu de relevante na janela desde o ciclo anterior
+   (no mínimo `lookback_hours` horas; a varredura de segunda cobre o fim de semana): listagens em exchanges, TGEs/vendas públicas, unlocks, ETFs, hacks e
    narrativas ganhando tração (cripto), ou relatórios/ratings de bancos, resultados
    trimestrais e fatos relevantes (B3).
 2. O modelo devolve um JSON com até `max_opportunities` oportunidades (ativo, direção,
@@ -44,10 +45,12 @@ fatos relevantes), sempre com atribuição.**
    gráfico (variação e volume recente vs. média).
 5. Tudo é enviado num único resumo no Telegram por ciclo.
 
-> **Custo:** cada ciclo consome tokens (e as buscas feitas pelo modelo) cobrados
-> pela Groq. Com o padrão de 30 min são ~48 consultas/dia só de cripto — ajuste o
-> intervalo conforme seu orçamento. O mercado B3 usa um intervalo maior por padrão
-> (120 min) justamente para não dobrar o custo à toa.
+> **Custo e cota:** cada ciclo gasta ~35 mil tokens (a busca web navega em várias
+> páginas) e a conta `on_demand` da Groq limita o `gpt-oss-120b` a **200 mil tokens por
+> dia** e 8 mil por minuto — cabem só ~5-6 ciclos por dia. Por isso o padrão são
+> horários fixos, escolhidos para quando as notícias saem (relatórios de bancos antes
+> da abertura, balanços e fatos relevantes depois do pregão), e não um intervalo
+> curto. Com o Dev Tier da Groq (pago) dá para adicionar horários em `run_at`.
 >
 > **Atenção:** use um modelo da Groq com busca web real (`openai/gpt-oss-*` + `browser_search`).
 > Modelos padrão (Llama, Mixtral etc.) não têm acesso à internet e podem *inventar*
@@ -78,7 +81,7 @@ python news_main.py   # radar de notícias (Groq) por Telegram — pode rodar em
 ## Dashboard web
 
 `server.py` sobe uma API FastAPI que roda o mesmo radar de notícias em
-background (cripto + B3, cada mercado no seu próprio intervalo) e persiste o
+background (cripto + B3, cada mercado nos seus próprios horários) e persiste o
 histórico completo de oportunidades em SQLite (`data/app.db`) — não só o que
 vira alerta, para o dashboard poder mostrar a análise completa de cada ativo.
 
@@ -224,7 +227,7 @@ Além das oportunidades geradas por IA, o dashboard mostra:
   ([src/watchlists.py](src/watchlists.py)) — dado puro de mercado, direto da
   Binance/brapi.dev, sem custo de IA nem dependência do Groq.
 - **Botão "Atualizar agora"** — dispara um ciclo de análise imediatamente
-  (`POST /api/markets/{market}/scan`), sem esperar o próximo intervalo
+  (`POST /api/markets/{market}/scan`), sem esperar o próximo horário agendado
   agendado. Consome a API da Groq como qualquer ciclo normal (não é grátis).
 
 > **Sobre o modelo da Groq:** a linha `groq/compound*` foi descontinuada em
@@ -274,6 +277,7 @@ no futuro resolve isso sem tocar no resto da arquitetura.
 - `src/watchlists.py` — lista de ativos exibidos na cotação ao vivo do dashboard.
 - `src/repository.py` — persistência SQLite (`data/app.db`) do radar de notícias:
   cooldowns por (mercado, ativo) e histórico completo de oportunidades.
+- `src/schedule.py` — valida `run_at`/`days` e calcula a janela de notícias de cada ciclo.
 - `src/scheduler.py` — agenda o `scan_once` de cada mercado dentro do processo do
   dashboard (usado só por `server.py`, não pelos loops de `news_main.py`/`main.py`).
 - `src/api/` — app FastAPI (`app.py`) e endpoints REST (`routers/markets.py`)

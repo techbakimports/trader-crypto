@@ -51,31 +51,49 @@ news:
   # browser_search, que o src/groq_client.py liga sozinho para ids "openai/gpt-oss*".
   model: openai/gpt-oss-120b   # modelo da Groq com busca web via browser_search, usado por todos os mercados
 
+  # Fuso dos horários `run_at` abaixo (a VM está em America/Manaus; declarar o fuso
+  # aqui evita depender do relógio do servidor).
+  timezone: America/Sao_Paulo
+
+  # Cada mercado roda em HORÁRIOS FIXOS (`run_at` + `days`) em vez de a cada N
+  # minutos: a cota diária da Groq para o modelo é de ~200 mil tokens e cada busca
+  # web gasta ~35 mil, então só cabem ~5-6 ciclos por dia — melhor gastá-los
+  # quando as notícias saem do que de madrugada ou no fim de semana.
+  #   run_at:             lista de "HH:MM" no fuso acima
+  #   days:               dias da semana ("mon-fri", "mon-sun", "mon,wed,fri"...)
+  #   lookback_hours:     janela MÍNIMA de notícias; com `run_at`, a janela real é o
+  #                       tempo desde o ciclo anterior (ex: segunda cobre o fim de
+  #                       semana), limitada por `max_lookback_hours` (padrão 96)
+  # Sem `run_at`, vale o modo antigo: `scan_interval_minutes` (roda também no start).
   markets:
     crypto:
-      scan_interval_minutes: 30   # cripto negocia 24/7, intervalo mais curto
-      lookback_hours: 12          # janela de notícias considerada em cada consulta
+      run_at: ["07:00", "12:00"]  # 07h: madrugada/Ásia; 12h: abertura de Nova York (ETFs, regulação)
+      days: mon-sun               # cripto negocia 24/7
+      lookback_hours: 12
       max_opportunities: 5        # máximo de oportunidades pedidas por ciclo
       min_confidence: 6           # descarta oportunidades com confiança < N (escala 1-10)
       cooldown_hours: 12          # não repete alerta do mesmo ativo antes desse prazo
 
     altcoins:
-      scan_interval_minutes: 30   # narrativa de altcoin pequena muda rápido, igual cripto
-      lookback_hours: 6           # janela menor: narrativas de nicho ficam velhas rápido
+      run_at: ["20:00"]           # narrativas de nicho: uma varredura ao fim do dia
+      days: mon-sun
+      lookback_hours: 6
       max_opportunities: 5
       min_confidence: 6           # mesma régua de confiança do cripto — não afrouxa por ser pequena
       cooldown_hours: 12
 
     b3:
-      scan_interval_minutes: 120  # ações da B3 só têm pregão em horário comercial
-      lookback_hours: 24          # janela maior: relatórios de banco saem a qualquer hora do dia
+      run_at: ["08:00", "18:30"]  # 08h: relatórios de bancos antes da abertura; 18h30: balanços/fatos relevantes pós-pregão
+      days: mon-fri               # pregão: 10h-17h, só dias úteis
+      lookback_hours: 12
       max_opportunities: 5
       min_confidence: 6
       cooldown_hours: 24
 
     b3_smallcaps:
-      scan_interval_minutes: 120  # mesmo horário de pregão do b3 padrão
-      lookback_hours: 24
+      run_at: ["18:45"]           # pós-pregão (15 min depois do b3, pra não competir pelo limite de tokens/min)
+      days: mon-fri
+      lookback_hours: 12
       max_opportunities: 5
       min_confidence: 6           # mesma régua — não afrouxa por ser small cap
       cooldown_hours: 24

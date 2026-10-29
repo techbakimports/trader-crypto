@@ -10,7 +10,7 @@ import logging
 import time
 from dataclasses import dataclass
 
-from . import binance_client, repository
+from . import binance_client, repository, schedule
 from .config import MarketConfig, NewsConfig
 from .groq_client import GroqClient
 from .market_data import b3_client
@@ -123,13 +123,13 @@ def scan_once(
     manual (endpoint da API) pra devolver status real ao usuário — o loop
     agendado (scheduler/`run`) ignora o retorno, como sempre fez."""
     market = MARKETS[market_cfg.key]
+    lookback_hours = schedule.effective_lookback_hours(market_cfg)
     log.info(
-        "[%s] Consultando Groq por notícias das últimas %dh...",
-        market.key, market_cfg.lookback_hours,
+        "[%s] Consultando Groq por notícias das últimas %dh...", market.key, lookback_hours
     )
     try:
         report = _fetch_report_with_retry(
-            client, market, market_cfg.lookback_hours, market_cfg.max_opportunities
+            client, market, lookback_hours, market_cfg.max_opportunities
         )
     except Exception as exc:
         log.error("[%s] Falha na análise de notícias via Groq: %s", market.key, exc)
@@ -174,20 +174,11 @@ def scan_once(
 
 
 def run(cfg: NewsConfig) -> None:
-    repository.init_db()
-    client = GroqClient(cfg.groq_api_key, cfg.model)
-    notifier = TelegramNotifier(cfg.telegram_bot_token, cfg.telegram_chat_id)
-    log.info(
-        "Radar de notícias iniciado. Modelo: %s | mercados: %s",
-        cfg.model, ", ".join(m.key for m in cfg.markets),
-    )
+    """Loop bloqueante do radar (sem o dashboard): sobe o mesmo agendador do
+    `server.py` e fica de pé até ser interrompido."""
+    from . import scheduler  # import tardio: scheduler importa este módulo
 
-    next_run = {m.key: 0.0 for m in cfg.markets}
-    poll_seconds = min(m.scan_interval_minutes for m in cfg.markets) * 60
+    log.info("Radar de notícias iniciado. Modelo: %s", cfg.model)
+    scheduler.start(cfg)
     while True:
-        now = time.time()
-        for market_cfg in cfg.markets:
-            if now >= next_run[market_cfg.key]:
-                scan_once(client, market_cfg, notifier)
-                next_run[market_cfg.key] = now + market_cfg.scan_interval_minutes * 60
-        time.sleep(poll_seconds)
+        time.sleep(3600)
